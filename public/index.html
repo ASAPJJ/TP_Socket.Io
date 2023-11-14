@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chat Grupal</title>
+    <style>
+        /* Añadir estilos básicos para el chat */
+        #messages { list-style-type: none; padding: 0; }
+        #messages li { padding: 5px 10px; }
+        #send-form { display: flex; }
+        #messageInput { flex-grow: 1; }
+    </style>
+</head>
+<body>
+    <ul id="messages"></ul>
+    <form id="send-form" action="">
+        <input id="messageInput" autocomplete="off" /><button>Enviar</button>
+    </form>
+    <div id="typingIndicator"></div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io();
+        var userName = prompt("Ingresa tu nombre de usuario") || "Anónimo";
+
+        document.getElementById('send-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (document.getElementById('messageInput').value) {
+                socket.emit('chat message', { user: userName, text: document.getElementById('messageInput').value });
+                document.getElementById('messageInput').value = '';
+            }
+        });
+
+        document.getElementById('messageInput').addEventListener('input', function() {
+            socket.emit('typing', userName);
+        });
+
+        socket.on('previous messages', function(previousMessages) {
+            previousMessages.forEach(function(msg) {
+                var item = document.createElement('li');
+                item.textContent = `${msg.user}: ${msg.text} (${new Date(msg.timestamp).toLocaleString()})`;
+                document.getElementById('messages').appendChild(item);
+            });
+        });
+
+        socket.on('chat message', function(msg) {
+            var item = document.createElement('li');
+            item.textContent = `${msg.user}: ${msg.text} (${new Date(msg.timestamp).toLocaleString()})`;
+            document.getElementById('messages').appendChild(item);
+            window.scrollTo(0, document.body.scrollHeight);
+        });
+
+        socket.on('user typing', function(user) {
+            var typingIndicator = document.getElementById('typingIndicator');
+            typingIndicator.textContent = user + ' está escribiendo...';
+            setTimeout(function() { typingIndicator.textContent = ''; }, 3000);
+        });
+    </script>
+</body>
+</html>
